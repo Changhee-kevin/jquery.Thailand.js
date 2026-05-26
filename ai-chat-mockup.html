@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #f4f5f7;
+    color: #1f2328;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 720px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── Header ─────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #ececec;
+    background: #fff;
+  }
+  header .title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  header .avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+  }
+  header .status {
+    font-size: 12px;
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  header .status::before {
+    content: ""; width: 6px; height: 6px;
+    background: #16a34a; border-radius: 50%;
+  }
+
+  /* ── Messages ───────────────────────────────── */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.ai   { align-self: flex-start; }
+
+  .msg .bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .msg.user .bubble {
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.ai .bubble {
+    background: #f1f3f5;
+    color: #1f2328;
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg .meta {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .msg.ai .meta { text-align: left; }
+
+  .msg .ai-icon {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 700;
+  }
+
+  /* attachment in bubble */
+  .attachment {
+    margin-top: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.04);
+  }
+  .msg.user .attachment { background: rgba(255,255,255,0.18); }
+
+  .attachment img {
+    width: 100%;
+    max-width: 280px;
+    display: block;
+    cursor: pointer;
+  }
+
+  .file-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    min-width: 220px;
+  }
+  .file-card .file-ico {
+    width: 36px; height: 36px;
+    background: #fff;
+    color: #2563eb;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .file-card .file-info { flex: 1; min-width: 0; }
+  .file-card .file-name {
+    font-size: 13px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file-card .file-size { font-size: 11px; opacity: 0.7; }
+  .file-card .file-dl {
+    background: none; border: none; cursor: pointer;
+    padding: 6px; border-radius: 6px;
+    color: inherit;
+    transition: background 0.15s;
+  }
+  .file-card .file-dl:hover { background: rgba(0,0,0,0.08); }
+  .msg.user .file-card .file-dl:hover { background: rgba(255,255,255,0.2); }
+
+  /* typing indicator */
+  .typing {
+    display: inline-flex; gap: 4px; padding: 4px 0;
+  }
+  .typing span {
+    width: 6px; height: 6px; background: #9ca3af; border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* ── Input ──────────────────────────────────── */
+  .composer {
+    border-top: 1px solid #ececec;
+    padding: 10px 12px 14px;
+    background: #fff;
+  }
+
+  .preview-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 8px 0;
+  }
+  .preview-row:empty { display: none; }
+  .preview-item {
+    position: relative;
+    flex-shrink: 0;
+    background: #f1f3f5;
+    border-radius: 8px;
+    padding: 6px 28px 6px 8px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    max-width: 200px;
+  }
+  .preview-item img {
+    width: 32px; height: 32px; object-fit: cover; border-radius: 4px;
+  }
+  .preview-item .name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .preview-item .x {
+    position: absolute; top: 2px; right: 4px;
+    background: #6b7280; color: #fff;
+    border: none; border-radius: 50%;
+    width: 16px; height: 16px;
+    font-size: 10px; line-height: 16px;
+    cursor: pointer;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    background: #f4f5f7;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 6px 8px 6px 14px;
+  }
+  .input-row textarea {
+    flex: 1;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 6px 0;
+    max-height: 120px;
+  }
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #6b7280;
+    transition: background 0.15s, color 0.15s;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.05); color: #2563eb; }
+  .icon-btn.send {
+    background: #2563eb; color: #fff;
+  }
+  .icon-btn.send:hover { background: #1d4ed8; color: #fff; }
+  .icon-btn.send:disabled {
+    background: #c7d2da; cursor: not-allowed;
+  }
+
+  /* image lightbox */
+  .lightbox {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 95vw; max-height: 95vh; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="title">
+      <div class="avatar">AI</div>
+      <div>
+        <div>AI Assistant</div>
+        <div class="status">온라인</div>
+      </div>
+    </div>
+    <button class="icon-btn" title="새 대화">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </header>
+
+  <div class="messages" id="messages">
+    <!-- 샘플 메시지: AI -->
+    <div class="msg ai">
+      <div class="ai-icon">AI</div>
+      <div>
+        <div class="bubble">안녕하세요! 무엇을 도와드릴까요? 텍스트 질문, 이미지/파일 분석 모두 가능합니다.</div>
+        <div class="meta">오전 10:02</div>
+      </div>
+    </div>
+
+    <!-- 샘플 메시지: 사용자 (이미지 첨부) -->
+    <div class="msg user">
+      <div>
+        <div class="bubble">
+          이 이미지에 대해 설명해줘.
+          <div class="attachment">
+            <img src="https://picsum.photos/seed/sample/400/240" alt="첨부 이미지" onclick="openLightbox(this.src)">
+          </div>
+        </div>
+        <div class="meta">오전 10:03</div>
+      </div>
+    </div>
+
+    <!-- 샘플 메시지: AI (텍스트 + 파일 다운로드) -->
+    <div class="msg ai">
+      <div class="ai-icon">AI</div>
+      <div>
+        <div class="bubble">분석 결과를 정리한 보고서를 첨부했습니다. 아래 버튼으로 내려받을 수 있어요.
+          <div class="attachment">
+            <div class="file-card">
+              <div class="file-ico">📄</div>
+              <div class="file-info">
+                <div class="file-name">analysis_report.pdf</div>
+                <div class="file-size">142 KB</div>
+              </div>
+              <button class="file-dl" title="다운로드" onclick="downloadFile('analysis_report.pdf', 'PDF 내용 예시')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="meta">오전 10:04</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="preview-row" id="previewRow"></div>
+    <div class="input-row">
+      <button class="icon-btn" title="파일 첨부" onclick="document.getElementById('fileInput').click()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <input type="file" id="fileInput" multiple hidden accept="image/*,.pdf,.doc,.docx,.txt,.zip">
+      <textarea id="input" rows="1" placeholder="메시지를 입력하세요..." oninput="autoGrow(this); toggleSend()"></textarea>
+      <button class="icon-btn send" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightboxImg" alt="">
+</div>
+
+<script>
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('input');
+  const sendBtn     = document.getElementById('sendBtn');
+  const fileInput   = document.getElementById('fileInput');
+  const previewRow  = document.getElementById('previewRow');
+
+  let pendingFiles = []; // {file, url}
+
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+  function toggleSend() {
+    sendBtn.disabled = !(inputEl.value.trim() || pendingFiles.length);
+  }
+  function nowTime() {
+    const d = new Date();
+    const h = d.getHours(), m = d.getMinutes();
+    const ampm = h < 12 ? '오전' : '오후';
+    const hh = ((h + 11) % 12) + 1;
+    return `${ampm} ${hh}:${String(m).padStart(2,'0')}`;
+  }
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    return (b/1024/1024).toFixed(1) + ' MB';
+  }
+
+  fileInput.addEventListener('change', e => {
+    for (const f of e.target.files) {
+      pendingFiles.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    renderPreviews();
+    toggleSend();
+    fileInput.value = '';
+  });
+
+  function renderPreviews() {
+    previewRow.innerHTML = '';
+    pendingFiles.forEach((p, idx) => {
+      const item = document.createElement('div');
+      item.className = 'preview-item';
+      const isImg = p.file.type.startsWith('image/');
+      item.innerHTML = `
+        ${isImg ? `<img src="${p.url}">` : `<span>📄</span>`}
+        <span class="name">${p.file.name}</span>
+        <button class="x" onclick="removePending(${idx})">×</button>
+      `;
+      previewRow.appendChild(item);
+    });
+  }
+  function removePending(idx) {
+    URL.revokeObjectURL(pendingFiles[idx].url);
+    pendingFiles.splice(idx, 1);
+    renderPreviews();
+    toggleSend();
+  }
+
+  function appendMessage({ role, text = '', attachments = [] }) {
+    const msg = document.createElement('div');
+    msg.className = `msg ${role}`;
+
+    const attachHTML = attachments.map(a => {
+      if (a.type === 'image') {
+        return `<div class="attachment"><img src="${a.url}" onclick="openLightbox('${a.url}')"></div>`;
+      }
+      return `<div class="attachment">
+          <div class="file-card">
+            <div class="file-ico">📄</div>
+            <div class="file-info">
+              <div class="file-name">${a.name}</div>
+              <div class="file-size">${a.size}</div>
+            </div>
+            <button class="file-dl" onclick="downloadFile('${a.name}', '파일 내용 예시')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const inner = `
+      ${role === 'ai' ? '<div class="ai-icon">AI</div>' : ''}
+      <div>
+        <div class="bubble">${text || ''}${attachHTML}</div>
+        <div class="meta">${nowTime()}</div>
+      </div>
+    `;
+    msg.innerHTML = inner;
+    messagesEl.appendChild(msg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return msg;
+  }
+
+  function appendTyping() {
+    const msg = document.createElement('div');
+    msg.className = 'msg ai';
+    msg.id = 'typingMsg';
+    msg.innerHTML = `
+      <div class="ai-icon">AI</div>
+      <div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>
+    `;
+    messagesEl.appendChild(msg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function removeTyping() {
+    document.getElementById('typingMsg')?.remove();
+  }
+
+  function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text && !pendingFiles.length) return;
+
+    const attachments = pendingFiles.map(p => ({
+      type: p.file.type.startsWith('image/') ? 'image' : 'file',
+      url: p.url,
+      name: p.file.name,
+      size: fmtSize(p.file.size),
+    }));
+
+    appendMessage({ role: 'user', text, attachments });
+
+    inputEl.value = '';
+    pendingFiles = [];
+    renderPreviews();
+    autoGrow(inputEl);
+    toggleSend();
+
+    // 가짜 AI 응답
+    appendTyping();
+    setTimeout(() => {
+      removeTyping();
+      mockAiReply(text, attachments);
+    }, 900 + Math.random() * 600);
+  }
+
+  function mockAiReply(userText, userAttachments) {
+    const hasImg = userAttachments.some(a => a.type === 'image');
+    let reply = '네, 알겠습니다. 추가 도움이 필요하시면 알려주세요.';
+    let attachments = [];
+
+    if (hasImg) {
+      reply = '첨부해주신 이미지를 확인했어요. 비슷한 스타일의 이미지를 생성해보았습니다.';
+      attachments.push({
+        type: 'image',
+        url: `https://picsum.photos/seed/${Date.now()}/420/260`,
+        name: 'ai_generated.jpg',
+        size: '—',
+      });
+    } else if (/보고서|리포트|문서|파일/.test(userText)) {
+      reply = '요청하신 내용을 정리한 문서입니다. 아래에서 내려받으실 수 있어요.';
+      attachments.push({
+        type: 'file',
+        name: 'ai_response.txt',
+        size: '1.2 KB',
+      });
+    } else if (userText) {
+      reply = `"${userText}"에 대한 답변이에요.\n\n좀 더 구체적으로 알려주시면 더 정확하게 답변드릴 수 있어요.`;
+    }
+
+    appendMessage({ role: 'ai', text: reply, attachments });
+  }
+
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  function downloadFile(name, content) {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+</script>
+</body>
+</html>
