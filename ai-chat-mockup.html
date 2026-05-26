@@ -2,28 +2,36 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>AI Chat</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
     background: #f4f5f7;
     color: #1f2328;
-    height: 100vh;
     display: flex;
     justify-content: center;
   }
 
   .app {
     width: 100%;
-    max-width: 720px;
-    height: 100vh;
+    max-width: 480px;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     background: #ffffff;
     box-shadow: 0 0 24px rgba(0, 0, 0, 0.06);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* ── Header ─────────────────────────────────── */
