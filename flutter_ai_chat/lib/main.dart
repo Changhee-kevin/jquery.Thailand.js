@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -12,7 +13,7 @@ class AiChatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Chat',
+      title: 'แชท AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -84,7 +85,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _messages.addAll([
       Message(
         role: Role.ai,
-        text: '안녕하세요! 무엇을 도와드릴까요?\n텍스트, 이미지, 파일 모두 보내주세요.',
+        text: 'สวัสดีค่ะ! มีอะไรให้ช่วยไหมคะ?\nสามารถส่งข้อความ รูปภาพ หรือไฟล์มาได้เลย',
       ),
     ]);
   }
@@ -174,27 +175,27 @@ class _ChatScreenState extends State<ChatScreen> {
     List<Attachment> atts = [];
 
     if (hasImage) {
-      reply = '첨부해주신 이미지를 확인했어요. 비슷한 이미지를 생성해드릴게요.';
+      reply = 'ฉันได้ตรวจสอบรูปภาพที่คุณแนบมาแล้ว ลองสร้างรูปภาพในสไตล์ที่คล้ายกันให้';
       atts.add(Attachment(
         type: AttachmentType.image,
         name: 'ai_generated.jpg',
         size: -1,
         url: 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/420/260',
       ));
-    } else if (RegExp(r'(보고서|리포트|문서|파일)').hasMatch(userText)) {
-      reply = '요청하신 내용을 정리한 문서입니다. 아래에서 내려받으실 수 있어요.';
+    } else if (RegExp(r'(รายงาน|เอกสาร|ไฟล์|report|document|file)', caseSensitive: false).hasMatch(userText)) {
+      reply = 'นี่คือเอกสารที่สรุปตามที่คุณร้องขอ สามารถดาวน์โหลดได้จากด้านล่าง';
       atts.add(Attachment(
         type: AttachmentType.file,
         name: 'ai_response.txt',
         size: 1248,
         bytes: Uint8List.fromList(
-          'AI가 생성한 응답 문서입니다.\n사용자 요청: $userText'.codeUnits,
+          utf8.encode('เอกสารตอบกลับที่สร้างโดย AI\nคำร้องขอของผู้ใช้: $userText'),
         ),
       ));
     } else if (userText.isNotEmpty) {
-      reply = '"$userText"에 대한 답변이에요.\n좀 더 구체적으로 알려주시면 정확하게 답변드릴 수 있어요.';
+      reply = 'นี่คือคำตอบสำหรับ "$userText"\nหากบอกรายละเอียดเพิ่มเติม จะสามารถตอบได้แม่นยำขึ้น';
     } else {
-      reply = '네, 확인했습니다.';
+      reply = 'รับทราบค่ะ';
     }
 
     setState(() {
@@ -206,16 +207,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _downloadFile(Attachment a) async {
     if (a.bytes == null) {
-      _toast('다운로드할 파일 데이터가 없습니다.');
+      _toast('ไม่มีข้อมูลไฟล์สำหรับดาวน์โหลด');
       return;
     }
     try {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/${a.name}');
       await file.writeAsBytes(a.bytes!);
-      _toast('저장됨: ${file.path}');
+      _toast('บันทึกแล้ว: ${file.path}');
     } catch (e) {
-      _toast('저장 실패: $e');
+      _toast('บันทึกล้มเหลว: $e');
     }
   }
 
@@ -261,7 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('AI Assistant',
+                const Text('ผู้ช่วย AI',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
                 Row(
@@ -269,7 +270,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: const [
                     Icon(Icons.circle, color: Color(0xFF16A34A), size: 8),
                     SizedBox(width: 4),
-                    Text('온라인',
+                    Text('ออนไลน์',
                         style: TextStyle(fontSize: 11, color: Color(0xFF16A34A))),
                   ],
                 ),
@@ -284,7 +285,7 @@ class _ChatScreenState extends State<ChatScreen> {
               _messages.clear();
               _messages.add(Message(
                 role: Role.ai,
-                text: '새 대화를 시작합니다. 무엇을 도와드릴까요?',
+                text: 'เริ่มการสนทนาใหม่ มีอะไรให้ช่วยไหมคะ?',
               ));
             }),
           ),
@@ -333,10 +334,9 @@ class _MessageBubble extends StatelessWidget {
   });
 
   String _formatTime(DateTime t) {
-    final h = t.hour;
-    final ampm = h < 12 ? '오전' : '오후';
-    final hh = ((h + 11) % 12) + 1;
-    return '$ampm $hh:${t.minute.toString().padLeft(2, '0')}';
+    final hh = t.hour.toString().padLeft(2, '0');
+    final mm = t.minute.toString().padLeft(2, '0');
+    return '$hh:$mm น.';
   }
 
   @override
@@ -514,7 +514,7 @@ class _FileCard extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.download, color: fg, size: 20),
             onPressed: onDownload,
-            tooltip: '다운로드',
+            tooltip: 'ดาวน์โหลด',
           ),
         ],
       ),
@@ -629,7 +629,7 @@ class _Composer extends StatelessWidget {
                       icon: const Icon(Icons.attach_file,
                           color: Color(0xFF6B7280)),
                       onPressed: onPick,
-                      tooltip: '파일 첨부',
+                      tooltip: 'แนบไฟล์',
                     ),
                     Expanded(
                       child: ConstrainedBox(
@@ -640,7 +640,7 @@ class _Composer extends StatelessWidget {
                           maxLines: 5,
                           textInputAction: TextInputAction.newline,
                           decoration: const InputDecoration(
-                            hintText: '메시지를 입력하세요...',
+                            hintText: 'พิมพ์ข้อความ...',
                             border: InputBorder.none,
                             isCollapsed: true,
                             contentPadding:
@@ -661,7 +661,7 @@ class _Composer extends StatelessWidget {
                         icon: const Icon(Icons.arrow_upward,
                             color: Colors.white, size: 18),
                         onPressed: canSend ? onSend : null,
-                        tooltip: '전송',
+                        tooltip: 'ส่ง',
                       ),
                     ),
                   ],
